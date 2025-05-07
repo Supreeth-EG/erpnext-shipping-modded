@@ -27,6 +27,19 @@ def get_one_world_utils():
 
     return OneWorldExpressUtils()
 
+@frappe.whitelist()
+def test_connection():
+    """Test One World Express connection"""
+    try:
+        utils = get_one_world_utils()
+        if utils._login():
+            frappe.msgprint(_("Successfully connected to One World Express"))
+            return True
+        else:
+            frappe.throw(_("Failed to connect to One World Express. Please check your credentials."))
+    except Exception as e:
+        frappe.throw(_(f"Error testing connection: {str(e)}"))
+
 class OneWorldExpressError(Exception):
     """Custom exception for One World Express errors"""
     pass
@@ -39,7 +52,7 @@ class OneWorldExpressUtils:
         self.username = self.settings.username
         self.password = self.settings.password
         self.tracking_url = self.settings.tracking_url
-        self.base_url = "https://www.oneworldexpress.com"
+        self.base_url = "https://www.oneworldship.co.uk"
         self.login_url = f"{self.base_url}/login"
         self.track_url = f"{self.base_url}/track"
         self.shipped_url = f"{self.base_url}/track/view-shipped"

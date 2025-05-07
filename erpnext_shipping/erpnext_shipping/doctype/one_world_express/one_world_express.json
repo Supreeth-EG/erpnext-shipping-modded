@@ -1,5 +1,10 @@
 {
- "actions": [],
+ "actions": [
+  {
+   "action": "erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.test_connection",
+   "label": "Test Connection"
+  }
+ ],
  "allow_rename": 1,
  "creation": "2024-03-19 10:00:00.000000",
  "doctype": "DocType",
@@ -43,7 +48,7 @@
    "fieldname": "tracking_url",
    "fieldtype": "Data",
    "label": "Tracking URL",
-   "default": "https://www.oneworldexpress.com/track"
+   "default": "https://www.oneworldship.co.uk/track"
   },
   {
    "fieldname": "section_break_1",
