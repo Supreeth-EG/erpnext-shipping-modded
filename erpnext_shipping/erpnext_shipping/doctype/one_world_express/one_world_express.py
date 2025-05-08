@@ -34,7 +34,7 @@ class OneWorldExpress(Document):
 
     @frappe.whitelist()
     def test_connection(self):
-        """Test One World Express connection"""
+        """Test One World Express connection - instance method"""
         try:
             frappe.msgprint(_("Testing connection to One World Express..."), alert=True)
             utils = OneWorldExpressUtils(self)
@@ -62,12 +62,31 @@ def get_one_world_utils():
 
 @frappe.whitelist()
 def test_connection(doc=None):
-    """Test One World Express connection"""
+    """Test One World Express connection - standalone function"""
     try:
         frappe.msgprint(_("Testing connection to One World Express..."), alert=True)
+        if isinstance(doc, str):
+            # If doc is a JSON string (happens when called from frontend)
+            doc = json.loads(doc)
+            
         if doc:
-            settings = frappe.get_doc("One World Express", doc.name)
+            # For new or unsaved documents passed from frontend
+            if isinstance(doc, dict):
+                # Create a temporary settings object with the provided values
+                settings = frappe._dict({
+                    "username": doc.get("username"),
+                    "password": doc.get("password"),
+                    "company_slug": doc.get("company_slug"),
+                    "tracking_url": doc.get("tracking_url", BASE_URL),
+                })
+                
+                # Method to securely get password from dict
+                settings.get_password = lambda field_name: doc.get(field_name)
+            else:
+                # For Document objects
+                settings = doc
         else:
+            # Fallback to single doc
             settings = frappe.get_single("One World Express")
             
         utils = OneWorldExpressUtils(settings)

@@ -2,59 +2,32 @@ frappe.ui.form.on('One World Express', {
     refresh: function(frm) {
         // Add test connection button
         frm.add_custom_button(__('Test Connection'), function() {
-            if (frm.is_new()) {
-                // For new documents, use the standalone test_connection function
-                frappe.call({
-                    method: 'erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.test_connection',
-                    args: {
-                        doc: frm.doc
-                    },
-                    callback: function(r) {
-                        if (r.message) {
-                            frappe.show_alert({
-                                message: __('Connection successful!'),
-                                indicator: 'green'
-                            });
-                        } else {
-                            frappe.show_alert({
-                                message: __('Connection failed. Please check your credentials.'),
-                                indicator: 'red'
-                            });
-                        }
-                    },
-                    error: function(r) {
+            // Always use the standalone function which handles both new and existing documents
+            frappe.call({
+                method: 'erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.test_connection',
+                args: {
+                    doc: frm.doc
+                },
+                callback: function(r) {
+                    if (r.message) {
                         frappe.show_alert({
-                            message: __('Error testing connection: ') + r.message,
+                            message: __('Connection successful!'),
+                            indicator: 'green'
+                        });
+                    } else {
+                        frappe.show_alert({
+                            message: __('Connection failed. Please check your credentials.'),
                             indicator: 'red'
                         });
                     }
-                });
-            } else {
-                // For existing documents, use the instance method
-                frappe.call({
-                    doc: frm.doc,
-                    method: 'test_connection',
-                    callback: function(r) {
-                        if (r.message) {
-                            frappe.show_alert({
-                                message: __('Connection successful!'),
-                                indicator: 'green'
-                            });
-                        } else {
-                            frappe.show_alert({
-                                message: __('Connection failed. Please check your credentials.'),
-                                indicator: 'red'
-                            });
-                        }
-                    },
-                    error: function(r) {
-                        frappe.show_alert({
-                            message: __('Error testing connection: ') + r.message,
-                            indicator: 'red'
-                        });
-                    }
-                });
-            }
+                },
+                error: function(r) {
+                    frappe.show_alert({
+                        message: __('Error testing connection: ') + r.message,
+                        indicator: 'red'
+                    });
+                }
+            });
         });
     },
     
