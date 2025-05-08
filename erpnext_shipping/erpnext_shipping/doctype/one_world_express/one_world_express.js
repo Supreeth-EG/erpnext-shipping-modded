@@ -3,7 +3,8 @@ frappe.ui.form.on('One World Express', {
         // Add test connection button
         frm.add_custom_button(__('Test Connection'), function() {
             frappe.call({
-                method: 'erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.test_connection',
+                method: 'test_connection',
+                doc: frm.doc,
                 callback: function(r) {
                     if (r.message) {
                         frappe.show_alert({

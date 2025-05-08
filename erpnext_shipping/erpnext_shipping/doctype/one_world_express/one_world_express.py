@@ -44,11 +44,16 @@ def get_one_world_utils():
     return OneWorldExpressUtils(settings)
 
 @frappe.whitelist()
-def test_connection():
+def test_connection(doc=None):
     """Test One World Express connection"""
     try:
         frappe.msgprint(_("Testing connection to One World Express..."), alert=True)
-        utils = get_one_world_utils()
+        if doc:
+            settings = frappe.get_doc("One World Express", doc.name)
+        else:
+            settings = frappe.get_single("One World Express")
+            
+        utils = OneWorldExpressUtils(settings)
         if utils.test_connection():
             frappe.msgprint(_("Successfully connected to One World Express."), alert=True, indicator="green")
             return True
