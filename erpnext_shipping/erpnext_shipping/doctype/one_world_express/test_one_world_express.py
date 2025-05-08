@@ -49,11 +49,18 @@ class TestOneWorldExpress(unittest.TestCase):
 
     @patch('requests.Session')
     def test_login_success(self, mock_session):
-        # Mock successful login response
-        mock_session.return_value = self.mock_session
+        # Create a mock session
+        mock_session_instance = MagicMock()
+        mock_session.return_value = mock_session_instance
+        
+        # Set up the session cookies
+        mock_session_instance.cookies = {
+            'sessionid': 'test_session_id',
+            'csrftoken': 'test_csrf_token'
+        }
         
         # Mock the initial GET request for login page
-        mock_session.return_value.request.side_effect = [
+        mock_session_instance.request.side_effect = [
             MockResponse(
                 text="<html><form><input name='csrfmiddlewaretoken' value='test_csrf_token'></form></html>"
             ),
@@ -62,25 +69,31 @@ class TestOneWorldExpress(unittest.TestCase):
                 text="<html>Welcome to OneWorld</html>"
             )
         ]
-        
-        # Mock successful login check
-        mock_session.return_value.cookies = {
-            'sessionid': 'test_session_id',
-            'csrftoken': 'test_csrf_token'
-        }
 
+        # Create utils instance
         utils = OneWorldExpressUtils(self.mock_settings)
-        # Mock _make_request to return our mocked responses
-        utils._make_request = MagicMock(side_effect=mock_session.return_value.request.side_effect)
         
+        # Replace the session with our mock
+        utils.session = mock_session_instance
+        
+        # Mock _make_request to use our mock session's request
+        utils._make_request = MagicMock(side_effect=mock_session_instance.request)
+        
+        # Test login
         result = utils._login()
         self.assertTrue(result)
 
     @patch('requests.Session')
     def test_login_failure(self, mock_session):
-        # Mock failed login response
-        mock_session.return_value = self.mock_session
-        mock_session.return_value.request.side_effect = [
+        # Create a mock session
+        mock_session_instance = MagicMock()
+        mock_session.return_value = mock_session_instance
+        
+        # Set up empty cookies for failed login
+        mock_session_instance.cookies = {}
+        
+        # Mock the initial GET request for login page
+        mock_session_instance.request.side_effect = [
             MockResponse(
                 text="<html><form><input name='csrfmiddlewaretoken' value='test_csrf_token'></form></html>"
             ),
@@ -90,13 +103,17 @@ class TestOneWorldExpress(unittest.TestCase):
                 status_code=401
             )
         ]
-        # Mock failed login check
-        mock_session.return_value.cookies = {}
 
+        # Create utils instance
         utils = OneWorldExpressUtils(self.mock_settings)
-        # Mock _make_request to return our mocked responses
-        utils._make_request = MagicMock(side_effect=mock_session.return_value.request.side_effect)
         
+        # Replace the session with our mock
+        utils.session = mock_session_instance
+        
+        # Mock _make_request to use our mock session's request
+        utils._make_request = MagicMock(side_effect=mock_session_instance.request)
+        
+        # Test login
         result = utils._login()
         self.assertFalse(result)
 
