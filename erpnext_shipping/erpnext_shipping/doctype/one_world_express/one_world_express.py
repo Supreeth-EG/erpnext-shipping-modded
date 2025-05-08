@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Union, Any
 from frappe.utils.data import get_link_to_form
 from erpnext_shipping.erpnext_shipping.utils import show_error_alert
 import re
-from erpnext_shipping.services.recaptcha import RecaptchaSolver
+from erpnext_shipping.erpnext_shipping.services.recaptcha import RecaptchaSolver
 
 ONEWORLD_PROVIDER = "One World Express"
 BASE_URL = "https://www.oneworldship.co.uk"

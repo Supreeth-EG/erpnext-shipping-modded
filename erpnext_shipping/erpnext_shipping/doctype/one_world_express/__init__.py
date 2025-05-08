@@ -1,4 +1,6 @@
-from erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express import (
+"""One World Express integration for ERPNext Shipping"""
+
+from .one_world_express import (
     OneWorldExpress,
     OneWorldExpressUtils,
     test_connection,
