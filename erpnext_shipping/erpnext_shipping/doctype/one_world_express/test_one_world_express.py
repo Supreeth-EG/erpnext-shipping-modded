@@ -6,7 +6,8 @@ from frappe.test_runner import make_test_records
 from erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express import (
     OneWorldExpress,
     OneWorldExpressUtils,
-    test_connection
+    test_connection,
+    CSRF_TOKEN_FORM_NAME
 )
 
 class MockResponse:
@@ -50,10 +51,18 @@ class TestOneWorldExpress(unittest.TestCase):
     def test_login_success(self, mock_session):
         # Mock successful login response
         mock_session.return_value = self.mock_session
-        mock_session.return_value.request.return_value = MockResponse(
-            json_data={"status": "success"},
-            text="<html>Welcome to OneWorld</html>"
-        )
+        
+        # Mock the initial GET request for login page
+        mock_session.return_value.request.side_effect = [
+            MockResponse(
+                text="<html><form><input name='csrfmiddlewaretoken' value='test_csrf_token'></form></html>"
+            ),
+            MockResponse(
+                json_data={"status": "success"},
+                text="<html>Welcome to OneWorld</html>"
+            )
+        ]
+        
         # Mock successful login check
         mock_session.return_value.cookies = {
             'sessionid': 'test_session_id',
@@ -61,6 +70,9 @@ class TestOneWorldExpress(unittest.TestCase):
         }
 
         utils = OneWorldExpressUtils(self.mock_settings)
+        # Mock _make_request to return our mocked responses
+        utils._make_request = MagicMock(side_effect=mock_session.return_value.request.side_effect)
+        
         result = utils._login()
         self.assertTrue(result)
 
@@ -68,15 +80,23 @@ class TestOneWorldExpress(unittest.TestCase):
     def test_login_failure(self, mock_session):
         # Mock failed login response
         mock_session.return_value = self.mock_session
-        mock_session.return_value.request.return_value = MockResponse(
-            json_data={"status": "error"},
-            text="<html>Invalid credentials</html>",
-            status_code=401
-        )
+        mock_session.return_value.request.side_effect = [
+            MockResponse(
+                text="<html><form><input name='csrfmiddlewaretoken' value='test_csrf_token'></form></html>"
+            ),
+            MockResponse(
+                json_data={"status": "error"},
+                text="<html>Invalid credentials</html>",
+                status_code=401
+            )
+        ]
         # Mock failed login check
         mock_session.return_value.cookies = {}
 
         utils = OneWorldExpressUtils(self.mock_settings)
+        # Mock _make_request to return our mocked responses
+        utils._make_request = MagicMock(side_effect=mock_session.return_value.request.side_effect)
+        
         result = utils._login()
         self.assertFalse(result)
 
@@ -208,14 +228,25 @@ class TestOneWorldExpress(unittest.TestCase):
 
     def test_test_connection(self):
         with patch('erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.get_one_world_utils') as mock_utils:
-            mock_utils.return_value._login.return_value = True
-            mock_utils.return_value._make_request.return_value = MockResponse(
-                json_data={},  # Empty JSON data since we're checking HTML content
-                text="<html>Welcome to OneWorld</html>"
+            # Create a mock utils instance
+            mock_utils_instance = MagicMock()
+            mock_utils.return_value = mock_utils_instance
+            
+            # Mock successful login
+            mock_utils_instance._login.return_value = True
+            
+            # Mock the test URL response
+            mock_utils_instance.base_url = "https://www.oneworldship.co.uk"
+            mock_utils_instance.company_slug = "test-company"
+            mock_utils_instance._make_request.return_value = MockResponse(
+                json_data={},
+                text="<html><a href='/logout'>Logout</a></html>"
             )
             
-            result = test_connection()
-            self.assertTrue(result)
+            # Mock frappe.msgprint to prevent actual message display
+            with patch('frappe.msgprint'):
+                result = test_connection()
+                self.assertTrue(result)
 
 if __name__ == '__main__':
     unittest.main() 
