@@ -108,16 +108,25 @@ class TestOneWorldExpress(unittest.TestCase):
             'csrftoken': 'test_csrf_token'
         }
         
-        # Mock services page response
-        mock_session.return_value.request.return_value = MockResponse(
-            text="""
-            <div class="service-option" data-service-name="Express Delivery" data-price="10.99"></div>
-            <div class="service-option" data-service-name="Standard Delivery" data-price="5.99"></div>
-            """
-        )
+        # Mock the login response sequence
+        mock_session.return_value.request.side_effect = [
+            MockResponse(
+                text="<html><form><input name='csrfmiddlewaretoken' value='test_csrf_token'></form></html>"
+            ),
+            MockResponse(
+                json_data={"status": "success"},
+                text="<html>Welcome to OneWorld</html>"
+            ),
+            MockResponse(
+                text="""
+                <div class="service-option" data-service-name="Express Delivery" data-price="10.99"></div>
+                <div class="service-option" data-service-name="Standard Delivery" data-price="5.99"></div>
+                """
+            )
+        ]
 
         utils = OneWorldExpressUtils(self.mock_settings)
-        utils._make_request = MagicMock(return_value=mock_session.return_value.request.return_value)
+        utils._make_request = MagicMock(side_effect=mock_session.return_value.request.side_effect)
         
         services = utils.get_available_services(
             delivery_address={"country": "UK"},
@@ -140,17 +149,26 @@ class TestOneWorldExpress(unittest.TestCase):
             'csrftoken': 'test_csrf_token'
         }
         
-        # Mock shipment creation response
-        mock_session.return_value.request.return_value = MockResponse(
-            json_data={
-                "id": "12345",
-                "awb": "AWB123456",
-                "price": 10.99
-            }
-        )
+        # Mock the login response sequence
+        mock_session.return_value.request.side_effect = [
+            MockResponse(
+                text="<html><form><input name='csrfmiddlewaretoken' value='test_csrf_token'></form></html>"
+            ),
+            MockResponse(
+                json_data={"status": "success"},
+                text="<html>Welcome to OneWorld</html>"
+            ),
+            MockResponse(
+                json_data={
+                    "id": "12345",
+                    "awb": "AWB123456",
+                    "price": 10.99
+                }
+            )
+        ]
 
         utils = OneWorldExpressUtils(self.mock_settings)
-        utils._make_request = MagicMock(return_value=mock_session.return_value.request.return_value)
+        utils._make_request = MagicMock(side_effect=mock_session.return_value.request.side_effect)
         
         result = utils.create_shipment(
             shipment="TEST123",
@@ -203,17 +221,26 @@ class TestOneWorldExpress(unittest.TestCase):
             'csrftoken': 'test_csrf_token'
         }
         
-        # Mock tracking data response
-        mock_session.return_value.request.return_value = MockResponse(
-            json_data={
-                "awb": "AWB123456",
-                "status": "In Transit",
-                "status_description": "Package is in transit"
-            }
-        )
+        # Mock the login response sequence
+        mock_session.return_value.request.side_effect = [
+            MockResponse(
+                text="<html><form><input name='csrfmiddlewaretoken' value='test_csrf_token'></form></html>"
+            ),
+            MockResponse(
+                json_data={"status": "success"},
+                text="<html>Welcome to OneWorld</html>"
+            ),
+            MockResponse(
+                json_data={
+                    "awb": "AWB123456",
+                    "status": "In Transit",
+                    "status_description": "Package is in transit"
+                }
+            )
+        ]
 
         utils = OneWorldExpressUtils(self.mock_settings)
-        utils._make_request = MagicMock(return_value=mock_session.return_value.request.return_value)
+        utils._make_request = MagicMock(side_effect=mock_session.return_value.request.side_effect)
         
         result = utils.get_tracking_data("12345")
         
@@ -231,14 +258,23 @@ class TestOneWorldExpress(unittest.TestCase):
             'csrftoken': 'test_csrf_token'
         }
         
-        # Mock label response
-        mock_session.return_value.request.return_value = MockResponse(
-            content=b"PDF_CONTENT",
-            headers={"Content-Type": "application/pdf"}
-        )
+        # Mock the login response sequence
+        mock_session.return_value.request.side_effect = [
+            MockResponse(
+                text="<html><form><input name='csrfmiddlewaretoken' value='test_csrf_token'></form></html>"
+            ),
+            MockResponse(
+                json_data={"status": "success"},
+                text="<html>Welcome to OneWorld</html>"
+            ),
+            MockResponse(
+                content=b"PDF_CONTENT",
+                headers={"Content-Type": "application/pdf"}
+            )
+        ]
 
         utils = OneWorldExpressUtils(self.mock_settings)
-        utils._make_request = MagicMock(return_value=mock_session.return_value.request.return_value)
+        utils._make_request = MagicMock(side_effect=mock_session.return_value.request.side_effect)
         
         result = utils.get_label("12345")
         
