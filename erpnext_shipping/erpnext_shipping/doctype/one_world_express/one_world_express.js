@@ -2,12 +2,14 @@ frappe.ui.form.on('One World Express', {
     refresh: function(frm) {
         // Add test connection button
         frm.add_custom_button(__('Test Connection'), function() {
-            // Always use the standalone function which handles both new and existing documents
+            // First try the direct method
             frappe.call({
                 method: 'erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.test_connection',
                 args: {
                     doc: frm.doc
                 },
+                freeze: true,
+                freeze_message: __('Testing connection...'),
                 callback: function(r) {
                     if (r.message) {
                         frappe.show_alert({
@@ -22,9 +24,33 @@ frappe.ui.form.on('One World Express', {
                     }
                 },
                 error: function(r) {
-                    frappe.show_alert({
-                        message: __('Error testing connection: ') + r.message,
-                        indicator: 'red'
+                    // If the direct method fails, try the API endpoint
+                    frappe.call({
+                        method: 'erpnext_shipping.erpnext_shipping.api.test_one_world_connection',
+                        args: {
+                            doc: frm.doc
+                        },
+                        freeze: true,
+                        freeze_message: __('Testing connection (fallback)...'),
+                        callback: function(r) {
+                            if (r.message) {
+                                frappe.show_alert({
+                                    message: __('Connection successful!'),
+                                    indicator: 'green'
+                                });
+                            } else {
+                                frappe.show_alert({
+                                    message: __('Connection failed. Please check your credentials.'),
+                                    indicator: 'red'
+                                });
+                            }
+                        },
+                        error: function(r) {
+                            frappe.show_alert({
+                                message: __('Error testing connection: ') + r.message,
+                                indicator: 'red'
+                            });
+                        }
                     });
                 }
             });
