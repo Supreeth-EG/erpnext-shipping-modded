@@ -32,6 +32,23 @@ class OneWorldExpress(Document):
         except Exception as e:
             frappe.throw(_("Error validating One World Express settings: {0}").format(str(e)))
 
+    @frappe.whitelist()
+    def test_connection(self):
+        """Test One World Express connection"""
+        try:
+            frappe.msgprint(_("Testing connection to One World Express..."), alert=True)
+            utils = OneWorldExpressUtils(self)
+            if utils.test_connection():
+                frappe.msgprint(_("Successfully connected to One World Express."), alert=True, indicator="green")
+                return True
+            else:
+                frappe.msgprint(_("Failed to connect to One World Express. Please check your credentials and company slug."), alert=True, indicator="red")
+                return False
+        except Exception as e:
+            frappe.log_error(title="One World Express Test Connection Error", message=frappe.get_traceback())
+            frappe.msgprint(_(f"Error testing connection: {str(e)}"), alert=True, indicator="red")
+            return False
+
 @frappe.whitelist()
 def get_one_world_utils():
     """Get One World Express utils instance"""

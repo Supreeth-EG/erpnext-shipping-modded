@@ -2,9 +2,8 @@ frappe.ui.form.on('One World Express', {
     refresh: function(frm) {
         // Add test connection button
         frm.add_custom_button(__('Test Connection'), function() {
-            frappe.call({
+            frm.call({
                 method: 'test_connection',
-                doc: frm.doc,
                 callback: function(r) {
                     if (r.message) {
                         frappe.show_alert({
