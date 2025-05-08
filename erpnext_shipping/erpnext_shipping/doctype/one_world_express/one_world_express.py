@@ -120,7 +120,7 @@ class OneWorldExpressUtils:
         self.tracking_url = self.settings.tracking_url
         
         # URLs
-        self.login_url = f"{BASE_URL}/login"
+        self.login_url = f"{BASE_URL}/signin"
         self.api_base_url = f"{BASE_URL}/company/{self.company_slug}"
         self.api_login_url = f"{self.api_base_url}/api/auth/login"
         self.api_shipments_url = f"{self.api_base_url}/api/shipments"
@@ -144,7 +144,13 @@ class OneWorldExpressUtils:
         session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
             "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8"
+            "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": BASE_URL,
+            "Upgrade-Insecure-Requests": "1",
+            "sec-ch-ua": '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"'
         })
         return session
 
@@ -186,23 +192,25 @@ class OneWorldExpressUtils:
 
             if not csrf_token:
                 frappe.log_warning("CSRF token not found", "OneWorld Login Warning")
+                return False
 
             # Login
             login_data = {
+                "csrfmiddlewaretoken": csrf_token,
                 "username": self.username,
                 "password": self.password,
-                "remember": "true"
+                "next": "",
+                "g-recaptcha-response": ""  # Note: This might need to be handled differently
             }
-            if csrf_token:
-                login_data[CSRF_TOKEN_FORM_NAME] = csrf_token
 
             response = self._make_request(
                 "POST",
-                self.api_login_url,
+                self.login_url,
                 data=login_data,
                 headers={"Referer": self.login_url}
             )
 
+            # Check if login was successful
             return 'sessionid' in self.session.cookies and response.status_code == 200
 
         except Exception as e:
