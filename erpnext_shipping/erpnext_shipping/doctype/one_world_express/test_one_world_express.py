@@ -1,0 +1,174 @@
+import unittest
+import json
+from unittest.mock import patch, MagicMock
+import frappe
+from frappe.test_runner import make_test_records
+from erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express import (
+    OneWorldExpress,
+    OneWorldExpressUtils,
+    test_connection
+)
+
+class MockResponse:
+    def __init__(self, json_data, status_code=200, text="", content=b""):
+        self.json_data = json_data
+        self.status_code = status_code
+        self.text = text
+        self.content = content
+
+    def json(self):
+        return self.json_data
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise Exception(f"HTTP Error: {self.status_code}")
+
+class TestOneWorldExpress(unittest.TestCase):
+    def setUp(self):
+        # Create test records
+        make_test_records("One World Express")
+        
+        # Mock settings
+        self.mock_settings = frappe.get_doc({
+            "doctype": "One World Express",
+            "enabled": 1,
+            "username": "test_user",
+            "password": "test_pass",
+            "company_slug": "test-company",
+            "tracking_url": "https://www.oneworldship.co.uk/track"
+        })
+        
+        # Mock session
+        self.mock_session = MagicMock()
+        self.mock_session.cookies = {
+            'sessionid': 'test_session_id',
+            'csrftoken': 'test_csrf_token'
+        }
+
+    @patch('requests.Session')
+    def test_login_success(self, mock_session):
+        # Mock successful login response
+        mock_session.return_value = self.mock_session
+        mock_session.return_value.request.return_value = MockResponse(
+            json_data={"status": "success"},
+            text="<html>Welcome to OneWorld</html>"
+        )
+
+        utils = OneWorldExpressUtils(self.mock_settings)
+        result = utils._login()
+        self.assertTrue(result)
+
+    @patch('requests.Session')
+    def test_login_failure(self, mock_session):
+        # Mock failed login response
+        mock_session.return_value = self.mock_session
+        mock_session.return_value.request.return_value = MockResponse(
+            json_data={"status": "error"},
+            text="<html>Invalid credentials</html>",
+            status_code=401
+        )
+
+        utils = OneWorldExpressUtils(self.mock_settings)
+        result = utils._login()
+        self.assertFalse(result)
+
+    @patch('requests.Session')
+    def test_get_services(self, mock_session):
+        # Mock services page response
+        mock_session.return_value = self.mock_session
+        mock_session.return_value.request.return_value = MockResponse(
+            text="""
+            <div class="service-option" data-service-name="Express Delivery" data-price="10.99">
+                Express Delivery
+            </div>
+            <div class="service-option" data-service-name="Standard Delivery" data-price="5.99">
+                Standard Delivery
+            </div>
+            """
+        )
+
+        utils = OneWorldExpressUtils(self.mock_settings)
+        services = utils.get_available_services(
+            delivery_address={"address_line1": "123 Test St", "city": "Test City", "pincode": "12345", "country": "UK"},
+            pickup_address={"address_line1": "456 Test Ave", "city": "Test City", "pincode": "67890", "country": "UK"},
+            parcels=[{"weight": 1.0, "length": 10, "width": 10, "height": 10}]
+        )
+
+        self.assertEqual(len(services), 2)
+        self.assertEqual(services[0]["service_name"], "Express Delivery")
+        self.assertEqual(services[0]["total_price"], 10.99)
+
+    @patch('requests.Session')
+    def test_create_shipment(self, mock_session):
+        # Mock shipment creation response
+        mock_session.return_value = self.mock_session
+        mock_session.return_value.request.return_value = MockResponse(
+            json_data={
+                "id": "SHIP123",
+                "awb": "AWB123",
+                "price": 15.99,
+                "status": "created"
+            }
+        )
+
+        utils = OneWorldExpressUtils(self.mock_settings)
+        shipment = utils.create_shipment(
+            shipment="TEST123",
+            delivery_address={"address_line1": "123 Test St", "city": "Test City", "pincode": "12345", "country": "UK"},
+            pickup_address={"address_line1": "456 Test Ave", "city": "Test City", "pincode": "67890", "country": "UK"},
+            pickup_contact={"first_name": "John", "last_name": "Doe", "phone": "1234567890", "email_id": "john@test.com"},
+            shipment_parcel={"weight": 1.0, "length": 10, "width": 10, "height": 10},
+            delivery_contact={"first_name": "Jane", "last_name": "Smith", "phone": "0987654321", "email_id": "jane@test.com"},
+            service_info={"service_name": "Express Delivery"}
+        )
+
+        self.assertEqual(shipment["shipment_id"], "SHIP123")
+        self.assertEqual(shipment["awb_number"], "AWB123")
+        self.assertEqual(shipment["shipment_amount"], 15.99)
+
+    @patch('requests.Session')
+    def test_get_tracking_data(self, mock_session):
+        # Mock tracking data response
+        mock_session.return_value = self.mock_session
+        mock_session.return_value.request.return_value = MockResponse(
+            json_data={
+                "awb": "AWB123",
+                "status": "In Transit",
+                "status_description": "Package is in transit",
+                "last_update": "2024-03-19T10:00:00Z"
+            }
+        )
+
+        utils = OneWorldExpressUtils(self.mock_settings)
+        tracking = utils.get_tracking_data("SHIP123")
+
+        self.assertEqual(tracking["awb_number"], "AWB123")
+        self.assertEqual(tracking["tracking_status"], "In Transit")
+        self.assertEqual(tracking["tracking_status_info"], "Package is in transit")
+
+    @patch('requests.Session')
+    def test_get_label(self, mock_session):
+        # Mock label response
+        mock_session.return_value = self.mock_session
+        mock_session.return_value.request.return_value = MockResponse(
+            content=b"PDF_CONTENT",
+            headers={"Content-Type": "application/pdf"}
+        )
+
+        utils = OneWorldExpressUtils(self.mock_settings)
+        label = utils.get_label("SHIP123")
+
+        self.assertEqual(label, b"PDF_CONTENT")
+
+    def test_test_connection(self):
+        with patch('erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.get_one_world_utils') as mock_utils:
+            mock_utils.return_value._login.return_value = True
+            mock_utils.return_value._make_request.return_value = MockResponse(
+                text="<html>Welcome to OneWorld</html>"
+            )
+            
+            result = test_connection()
+            self.assertTrue(result)
+
+if __name__ == '__main__':
+    unittest.main() 

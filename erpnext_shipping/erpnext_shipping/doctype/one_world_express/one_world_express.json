@@ -14,6 +14,7 @@
   "enabled",
   "username",
   "password",
+  "company_slug",
   "column_break_1",
   "tracking_url",
   "section_break_1",
@@ -39,6 +40,13 @@
    "fieldtype": "Password",
    "label": "Password",
    "reqd": 1
+  },
+  {
+   "fieldname": "company_slug",
+   "fieldtype": "Data",
+   "label": "Company Slug",
+   "description": "The company-specific path segment in the URL (e.g., one-world-e2e-commify)",
+   "default": "one-world-e2e-commify"
   },
   {
    "fieldname": "column_break_1",
