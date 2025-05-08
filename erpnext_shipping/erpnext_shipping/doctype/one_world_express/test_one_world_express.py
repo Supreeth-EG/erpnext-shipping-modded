@@ -10,11 +10,12 @@ from erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_expre
 )
 
 class MockResponse:
-    def __init__(self, json_data, status_code=200, text="", content=b""):
-        self.json_data = json_data
+    def __init__(self, json_data=None, status_code=200, text="", content=b"", headers=None):
+        self.json_data = json_data or {}
         self.status_code = status_code
         self.text = text
         self.content = content
+        self.headers = headers or {}
 
     def json(self):
         return self.json_data
@@ -53,6 +54,11 @@ class TestOneWorldExpress(unittest.TestCase):
             json_data={"status": "success"},
             text="<html>Welcome to OneWorld</html>"
         )
+        # Mock successful login check
+        mock_session.return_value.cookies = {
+            'sessionid': 'test_session_id',
+            'csrftoken': 'test_csrf_token'
+        }
 
         utils = OneWorldExpressUtils(self.mock_settings)
         result = utils._login()
@@ -67,6 +73,8 @@ class TestOneWorldExpress(unittest.TestCase):
             text="<html>Invalid credentials</html>",
             status_code=401
         )
+        # Mock failed login check
+        mock_session.return_value.cookies = {}
 
         utils = OneWorldExpressUtils(self.mock_settings)
         result = utils._login()
@@ -74,9 +82,16 @@ class TestOneWorldExpress(unittest.TestCase):
 
     @patch('requests.Session')
     def test_get_services(self, mock_session):
-        # Mock services page response
+        # Mock successful login first
         mock_session.return_value = self.mock_session
+        mock_session.return_value.cookies = {
+            'sessionid': 'test_session_id',
+            'csrftoken': 'test_csrf_token'
+        }
+        
+        # Mock services page response
         mock_session.return_value.request.return_value = MockResponse(
+            json_data={},  # Empty JSON data since we're parsing HTML
             text="""
             <div class="service-option" data-service-name="Express Delivery" data-price="10.99">
                 Express Delivery
@@ -88,6 +103,9 @@ class TestOneWorldExpress(unittest.TestCase):
         )
 
         utils = OneWorldExpressUtils(self.mock_settings)
+        # Mock successful login
+        utils._login = MagicMock(return_value=True)
+        
         services = utils.get_available_services(
             delivery_address={"address_line1": "123 Test St", "city": "Test City", "pincode": "12345", "country": "UK"},
             pickup_address={"address_line1": "456 Test Ave", "city": "Test City", "pincode": "67890", "country": "UK"},
@@ -100,8 +118,14 @@ class TestOneWorldExpress(unittest.TestCase):
 
     @patch('requests.Session')
     def test_create_shipment(self, mock_session):
-        # Mock shipment creation response
+        # Mock successful login first
         mock_session.return_value = self.mock_session
+        mock_session.return_value.cookies = {
+            'sessionid': 'test_session_id',
+            'csrftoken': 'test_csrf_token'
+        }
+        
+        # Mock shipment creation response
         mock_session.return_value.request.return_value = MockResponse(
             json_data={
                 "id": "SHIP123",
@@ -112,6 +136,9 @@ class TestOneWorldExpress(unittest.TestCase):
         )
 
         utils = OneWorldExpressUtils(self.mock_settings)
+        # Mock successful login
+        utils._login = MagicMock(return_value=True)
+        
         shipment = utils.create_shipment(
             shipment="TEST123",
             delivery_address={"address_line1": "123 Test St", "city": "Test City", "pincode": "12345", "country": "UK"},
@@ -128,8 +155,14 @@ class TestOneWorldExpress(unittest.TestCase):
 
     @patch('requests.Session')
     def test_get_tracking_data(self, mock_session):
-        # Mock tracking data response
+        # Mock successful login first
         mock_session.return_value = self.mock_session
+        mock_session.return_value.cookies = {
+            'sessionid': 'test_session_id',
+            'csrftoken': 'test_csrf_token'
+        }
+        
+        # Mock tracking data response
         mock_session.return_value.request.return_value = MockResponse(
             json_data={
                 "awb": "AWB123",
@@ -140,6 +173,9 @@ class TestOneWorldExpress(unittest.TestCase):
         )
 
         utils = OneWorldExpressUtils(self.mock_settings)
+        # Mock successful login
+        utils._login = MagicMock(return_value=True)
+        
         tracking = utils.get_tracking_data("SHIP123")
 
         self.assertEqual(tracking["awb_number"], "AWB123")
@@ -148,14 +184,24 @@ class TestOneWorldExpress(unittest.TestCase):
 
     @patch('requests.Session')
     def test_get_label(self, mock_session):
-        # Mock label response
+        # Mock successful login first
         mock_session.return_value = self.mock_session
+        mock_session.return_value.cookies = {
+            'sessionid': 'test_session_id',
+            'csrftoken': 'test_csrf_token'
+        }
+        
+        # Mock label response
         mock_session.return_value.request.return_value = MockResponse(
+            json_data={},  # Empty JSON data since we're getting PDF content
             content=b"PDF_CONTENT",
             headers={"Content-Type": "application/pdf"}
         )
 
         utils = OneWorldExpressUtils(self.mock_settings)
+        # Mock successful login
+        utils._login = MagicMock(return_value=True)
+        
         label = utils.get_label("SHIP123")
 
         self.assertEqual(label, b"PDF_CONTENT")
@@ -164,6 +210,7 @@ class TestOneWorldExpress(unittest.TestCase):
         with patch('erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.get_one_world_utils') as mock_utils:
             mock_utils.return_value._login.return_value = True
             mock_utils.return_value._make_request.return_value = MockResponse(
+                json_data={},  # Empty JSON data since we're checking HTML content
                 text="<html>Welcome to OneWorld</html>"
             )
             
