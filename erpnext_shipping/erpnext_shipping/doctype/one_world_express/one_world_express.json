@@ -1,11 +1,7 @@
 {
- "actions": [
-  {
-   "action": "erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.test_connection",
-   "label": "Test Connection"
-  }
- ],
+ "actions": [],
  "allow_rename": 1,
+ "autoname": "format:One World Express",
  "creation": "2024-03-19 10:00:00.000000",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -15,78 +11,60 @@
   "username",
   "password",
   "company_slug",
-  "column_break_1",
   "tracking_url",
-  "section_break_1",
-  "default_settings",
-  "default_carrier",
-  "default_service"
+  "test_connection"
  ],
  "fields": [
   {
-   "default": "0",
    "fieldname": "enabled",
    "fieldtype": "Check",
-   "label": "Enabled"
+   "label": "Enabled",
+   "description": "Enable or disable One World Express integration"
   },
   {
    "fieldname": "username",
    "fieldtype": "Data",
    "label": "Username",
-   "reqd": 1
+   "reqd": 1,
+   "description": "Your One World Express username"
   },
   {
    "fieldname": "password",
    "fieldtype": "Password",
    "label": "Password",
-   "reqd": 1
+   "reqd": 1,
+   "description": "Your One World Express password"
   },
   {
    "fieldname": "company_slug",
    "fieldtype": "Data",
    "label": "Company Slug",
-   "description": "The company-specific path segment in the URL (e.g., one-world-e2e-commify)",
-   "default": "one-world-e2e-commify"
-  },
-  {
-   "fieldname": "column_break_1",
-   "fieldtype": "Column Break"
+   "reqd": 1,
+   "description": "Your company's unique identifier in One World Express"
   },
   {
    "fieldname": "tracking_url",
    "fieldtype": "Data",
    "label": "Tracking URL",
-   "default": "https://www.oneworldship.co.uk/track"
+   "reqd": 1,
+   "description": "Base URL for tracking shipments (e.g., https://www.oneworldship.co.uk/track)"
   },
   {
-   "fieldname": "section_break_1",
-   "fieldtype": "Section Break",
-   "label": "Default Settings"
-  },
-  {
-   "fieldname": "default_settings",
-   "fieldtype": "Check",
-   "label": "Use Default Settings"
-  },
-  {
-   "depends_on": "default_settings",
-   "fieldname": "default_carrier",
-   "fieldtype": "Data",
-   "label": "Default Carrier"
-  },
-  {
-   "depends_on": "default_settings",
-   "fieldname": "default_service",
-   "fieldtype": "Data",
-   "label": "Default Service"
+   "fieldname": "test_connection",
+   "fieldtype": "Button",
+   "label": "Test Connection",
+   "description": "Test the connection to One World Express",
+   "click": "erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.test_connection"
   }
  ],
  "index_web_pages_for_search": 1,
+ "istable": 1,
  "links": [],
  "modified": "2024-03-19 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "ERPNext Shipping",
  "name": "One World Express",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
@@ -104,5 +82,6 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 } 
