@@ -1,0 +1,22 @@
+{
+ "module_name": "ERPNext Shipping",
+ "module_label": "Shipping",
+ "module_icon": "octicon octicon-package",
+ "module_color": "#589494",
+ "module_description": "Shipping integrations for ERPNext",
+ "module_category": "Integrations",
+ "module_dependencies": ["erpnext"],
+ "module_license": "MIT",
+ "module_author": "Your Name",
+ "module_author_email": "your-email@example.com",
+ "module_author_website": "https://your-website.com",
+ "module_author_company": "Your Company",
+ "module_author_company_website": "https://your-company.com",
+ "module_author_company_email": "company@example.com",
+ "module_author_company_phone": "+1234567890",
+ "module_author_company_address": "Your Company Address",
+ "module_author_company_city": "Your City",
+ "module_author_company_state": "Your State",
+ "module_author_company_country": "Your Country",
+ "module_author_company_zip": "Your ZIP"
+} 
