@@ -9,7 +9,8 @@
   "username",
   "password",
   "company_slug",
-  "tracking_url"
+  "tracking_url",
+  "recaptcha_solving_service"
  ],
  "fields": [
   {
@@ -42,6 +43,12 @@
    "fieldtype": "Data",
    "label": "Tracking URL",
    "description": "Base URL for tracking shipments (e.g., https://www.oneworldship.co.uk/track)"
+  },
+  {
+   "fieldname": "recaptcha_solving_service",
+   "fieldtype": "Data",
+   "label": "reCAPTCHA Solving Service",
+   "description": "Method path to the reCAPTCHA solving service (e.g., custom_app.services.recaptcha.solve)"
   }
  ],
  "index_web_pages_for_search": 1,

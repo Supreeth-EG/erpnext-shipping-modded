@@ -11,6 +11,7 @@ from urllib3.util.retry import Retry
 from typing import Dict, List, Optional, Union, Any
 from frappe.utils.data import get_link_to_form
 from erpnext_shipping.erpnext_shipping.utils import show_error_alert
+import re
 
 ONEWORLD_PROVIDER = "One World Express"
 BASE_URL = "https://www.oneworldship.co.uk"
@@ -105,6 +106,10 @@ class OneWorldExpressError(Exception):
     """Custom exception for One World Express errors"""
     pass
 
+class RecaptchaError(OneWorldExpressError):
+    """Exception raised when reCAPTCHA handling fails"""
+    pass
+
 class OneWorldExpressUtils:
     """One World Express Integration Utils"""
     
@@ -181,12 +186,58 @@ class OneWorldExpressUtils:
         except Exception:
             return False
 
+    def _get_recaptcha_site_key(self, html_content: str) -> Optional[str]:
+        """Extract reCAPTCHA site key from HTML content"""
+        try:
+            # Look for reCAPTCHA site key in the HTML
+            site_key_match = re.search(r'data-sitekey="([^"]+)"', html_content)
+            if site_key_match:
+                return site_key_match.group(1)
+            
+            # Alternative pattern
+            site_key_match = re.search(r'grecaptcha\.render\s*\(\s*[\'"]([^\'"]+)[\'"]', html_content)
+            if site_key_match:
+                return site_key_match.group(1)
+            
+            return None
+        except Exception as e:
+            frappe.log_error(f"Error extracting reCAPTCHA site key: {str(e)}", "OneWorld reCAPTCHA Error")
+            return None
+
+    def _solve_recaptcha(self, site_key: str) -> Optional[str]:
+        """Solve reCAPTCHA using a solving service"""
+        try:
+            # Get reCAPTCHA solving service from settings
+            solving_service = frappe.get_single("One World Express").get("recaptcha_solving_service")
+            if not solving_service:
+                raise RecaptchaError("No reCAPTCHA solving service configured")
+
+            # Call the solving service
+            response = frappe.call({
+                "method": solving_service,
+                "args": {
+                    "site_key": site_key,
+                    "site_url": self.login_url
+                }
+            })
+
+            if not response or not response.get("message"):
+                raise RecaptchaError("Failed to get reCAPTCHA solution")
+
+            return response.get("message")
+
+        except Exception as e:
+            frappe.log_error(f"Error solving reCAPTCHA: {str(e)}", "OneWorld reCAPTCHA Error")
+            raise RecaptchaError(f"Failed to solve reCAPTCHA: {str(e)}")
+
     def _login(self) -> bool:
         """Login to One World Express"""
         try:
-            # Get CSRF token
+            # Get CSRF token and check for reCAPTCHA
             response = self._make_request("GET", self.login_url)
             soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Get CSRF token
             csrf_token = soup.find('input', {'name': CSRF_TOKEN_FORM_NAME})
             csrf_token = csrf_token['value'] if csrf_token else None
 
@@ -194,13 +245,24 @@ class OneWorldExpressUtils:
                 frappe.log_warning("CSRF token not found", "OneWorld Login Warning")
                 return False
 
+            # Check for reCAPTCHA
+            site_key = self._get_recaptcha_site_key(response.text)
+            recaptcha_response = ""
+            
+            if site_key:
+                try:
+                    recaptcha_response = self._solve_recaptcha(site_key)
+                except RecaptchaError as e:
+                    frappe.log_error(str(e), "OneWorld reCAPTCHA Error")
+                    frappe.throw(_("Failed to handle reCAPTCHA. Please try again later."))
+
             # Login
             login_data = {
                 "csrfmiddlewaretoken": csrf_token,
                 "username": self.username,
                 "password": self.password,
                 "next": "",
-                "g-recaptcha-response": ""  # Note: This might need to be handled differently
+                "g-recaptcha-response": recaptcha_response
             }
 
             response = self._make_request(
@@ -211,7 +273,24 @@ class OneWorldExpressUtils:
             )
 
             # Check if login was successful
-            return 'sessionid' in self.session.cookies and response.status_code == 200
+            if response.status_code == 200 and 'sessionid' in self.session.cookies:
+                return True
+            elif "recaptcha" in response.text.lower():
+                # If reCAPTCHA failed, try one more time
+                if site_key:
+                    try:
+                        recaptcha_response = self._solve_recaptcha(site_key)
+                        login_data["g-recaptcha-response"] = recaptcha_response
+                        response = self._make_request(
+                            "POST",
+                            self.login_url,
+                            data=login_data,
+                            headers={"Referer": self.login_url}
+                        )
+                        return response.status_code == 200 and 'sessionid' in self.session.cookies
+                    except RecaptchaError:
+                        pass
+            return False
 
         except Exception as e:
             frappe.log_error(f"Login failed: {str(e)}", "OneWorld Login Error")
