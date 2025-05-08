@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Union, Any
 from frappe.utils.data import get_link_to_form
 from erpnext_shipping.erpnext_shipping.utils import show_error_alert
 import re
+from erpnext_shipping.services.recaptcha import RecaptchaSolver
 
 ONEWORLD_PROVIDER = "One World Express"
 BASE_URL = "https://www.oneworldship.co.uk"
@@ -133,6 +134,11 @@ class OneWorldExpressUtils:
         self.services_page_url = f"{self.api_base_url}/shipped"
         
         self.session = self._configure_session()
+        self.recaptcha_solver = RecaptchaSolver(
+            username=self.username if self.settings else None,
+            password=self.password if self.settings else None,
+            chrome_driver_path=self.settings.chrome_driver_path if self.settings else None
+        )
 
     def _configure_session(self) -> requests.Session:
         """Configure session with retry mechanism and timeouts"""
@@ -233,68 +239,25 @@ class OneWorldExpressUtils:
     def _login(self) -> bool:
         """Login to One World Express"""
         try:
-            # Get CSRF token and check for reCAPTCHA
-            response = self._make_request("GET", self.login_url)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Get CSRF token
-            csrf_token = soup.find('input', {'name': CSRF_TOKEN_FORM_NAME})
-            csrf_token = csrf_token['value'] if csrf_token else None
-
-            if not csrf_token:
-                frappe.log_warning("CSRF token not found", "OneWorld Login Warning")
-                return False
-
-            # Check for reCAPTCHA
-            site_key = self._get_recaptcha_site_key(response.text)
-            recaptcha_response = ""
-            
-            if site_key:
-                try:
-                    recaptcha_response = self._solve_recaptcha(site_key)
-                except RecaptchaError as e:
-                    frappe.log_error(str(e), "OneWorld reCAPTCHA Error")
-                    frappe.throw(_("Failed to handle reCAPTCHA. Please try again later."))
-
-            # Login
-            login_data = {
-                "csrfmiddlewaretoken": csrf_token,
+            # First try direct login
+            login_url = f"{BASE_URL}/login"
+            response = self.session.post(login_url, data={
                 "username": self.username,
-                "password": self.password,
-                "next": "",
-                "g-recaptcha-response": recaptcha_response
-            }
+                "password": self.password
+            })
 
-            response = self._make_request(
-                "POST",
-                self.login_url,
-                data=login_data,
-                headers={"Referer": self.login_url}
-            )
+            # If login fails or reCAPTCHA is present, use Selenium
+            if "reCAPTCHA" in response.text or response.status_code != 200:
+                session_cookie = self.recaptcha_solver.solve()
+                if session_cookie:
+                    self.session.cookies.update(session_cookie)
+                else:
+                    frappe.throw(_("Failed to solve reCAPTCHA"))
 
-            # Check if login was successful
-            if response.status_code == 200 and 'sessionid' in self.session.cookies:
-                return True
-            elif "recaptcha" in response.text.lower():
-                # If reCAPTCHA failed, try one more time
-                if site_key:
-                    try:
-                        recaptcha_response = self._solve_recaptcha(site_key)
-                        login_data["g-recaptcha-response"] = recaptcha_response
-                        response = self._make_request(
-                            "POST",
-                            self.login_url,
-                            data=login_data,
-                            headers={"Referer": self.login_url}
-                        )
-                        return response.status_code == 200 and 'sessionid' in self.session.cookies
-                    except RecaptchaError:
-                        pass
-            return False
-
+            return True
         except Exception as e:
-            frappe.log_error(f"Login failed: {str(e)}", "OneWorld Login Error")
-            return False
+            frappe.log_error(title="One World Express Login Error", message=frappe.get_traceback())
+            frappe.throw(_("Failed to login: {0}").format(str(e)))
 
     def get_available_services(
         self,

@@ -10,7 +10,8 @@
   "password",
   "company_slug",
   "tracking_url",
-  "recaptcha_solving_service"
+  "recaptcha_solving_service",
+  "chrome_driver_path"
  ],
  "fields": [
   {
@@ -48,7 +49,14 @@
    "fieldname": "recaptcha_solving_service",
    "fieldtype": "Data",
    "label": "reCAPTCHA Solving Service",
-   "description": "Method path to the reCAPTCHA solving service (e.g., custom_app.services.recaptcha.solve)"
+   "description": "Method path to the reCAPTCHA solving service",
+   "default": "erpnext_shipping.services.recaptcha.solve_recaptcha"
+  },
+  {
+   "fieldname": "chrome_driver_path",
+   "fieldtype": "Data",
+   "label": "Chrome Driver Path",
+   "description": "Path to Chrome WebDriver executable (leave empty to use system PATH)"
   }
  ],
  "index_web_pages_for_search": 1,
