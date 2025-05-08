@@ -12,7 +12,6 @@ from typing import Dict, List, Optional, Union, Any
 from frappe.utils.data import get_link_to_form
 from erpnext_shipping.erpnext_shipping.utils import show_error_alert
 import re
-from erpnext_shipping.erpnext_shipping.services.recaptcha import RecaptchaSolver
 
 ONEWORLD_PROVIDER = "One World Express"
 BASE_URL = "https://www.oneworldship.co.uk"
@@ -107,10 +106,6 @@ class OneWorldExpressError(Exception):
     """Custom exception for One World Express errors"""
     pass
 
-class RecaptchaError(OneWorldExpressError):
-    """Exception raised when reCAPTCHA handling fails"""
-    pass
-
 class OneWorldExpressUtils:
     """One World Express Integration Utils"""
     
@@ -134,11 +129,6 @@ class OneWorldExpressUtils:
         self.services_page_url = f"{self.api_base_url}/shipped"
         
         self.session = self._configure_session()
-        self.recaptcha_solver = RecaptchaSolver(
-            username=self.username if self.settings else None,
-            password=self.password if self.settings else None,
-            chrome_driver_path=self.settings.chrome_driver_path if self.settings else None
-        )
 
     def _configure_session(self) -> requests.Session:
         """Configure session with retry mechanism and timeouts"""
@@ -191,50 +181,6 @@ class OneWorldExpressUtils:
             return False
         except Exception:
             return False
-
-    def _get_recaptcha_site_key(self, html_content: str) -> Optional[str]:
-        """Extract reCAPTCHA site key from HTML content"""
-        try:
-            # Look for reCAPTCHA site key in the HTML
-            site_key_match = re.search(r'data-sitekey="([^"]+)"', html_content)
-            if site_key_match:
-                return site_key_match.group(1)
-            
-            # Alternative pattern
-            site_key_match = re.search(r'grecaptcha\.render\s*\(\s*[\'"]([^\'"]+)[\'"]', html_content)
-            if site_key_match:
-                return site_key_match.group(1)
-            
-            return None
-        except Exception as e:
-            frappe.log_error(f"Error extracting reCAPTCHA site key: {str(e)}", "OneWorld reCAPTCHA Error")
-            return None
-
-    def _solve_recaptcha(self, site_key: str) -> Optional[str]:
-        """Solve reCAPTCHA using a solving service"""
-        try:
-            # Get reCAPTCHA solving service from settings
-            solving_service = frappe.get_single("One World Express").get("recaptcha_solving_service")
-            if not solving_service:
-                raise RecaptchaError("No reCAPTCHA solving service configured")
-
-            # Call the solving service
-            response = frappe.call({
-                "method": solving_service,
-                "args": {
-                    "site_key": site_key,
-                    "site_url": self.login_url
-                }
-            })
-
-            if not response or not response.get("message"):
-                raise RecaptchaError("Failed to get reCAPTCHA solution")
-
-            return response.get("message")
-
-        except Exception as e:
-            frappe.log_error(f"Error solving reCAPTCHA: {str(e)}", "OneWorld reCAPTCHA Error")
-            raise RecaptchaError(f"Failed to solve reCAPTCHA: {str(e)}")
 
     def _login(self) -> bool:
         """Login to One World Express"""
