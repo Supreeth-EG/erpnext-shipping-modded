@@ -66,7 +66,8 @@ class TestOneWorldExpress(unittest.TestCase):
             ),
             MockResponse(
                 json_data={"status": "success"},
-                text="<html>Welcome to OneWorld</html>"
+                text="<html>Welcome to OneWorld</html>",
+                status_code=200
             )
         ]
 
@@ -82,6 +83,22 @@ class TestOneWorldExpress(unittest.TestCase):
         # Test login
         result = utils._login()
         self.assertTrue(result)
+        
+        # Verify the login process
+        self.assertEqual(mock_session_instance.request.call_count, 2)
+        
+        # Verify first call was GET to login page
+        first_call = mock_session_instance.request.call_args_list[0]
+        self.assertEqual(first_call[0][0], "GET")
+        self.assertEqual(first_call[0][1], utils.site_login_url)
+        
+        # Verify second call was POST to login API
+        second_call = mock_session_instance.request.call_args_list[1]
+        self.assertEqual(second_call[0][0], "POST")
+        self.assertEqual(second_call[0][1], utils.api_login_url)
+        self.assertIn("username", second_call[1]["data"])
+        self.assertIn("password", second_call[1]["data"])
+        self.assertIn(CSRF_TOKEN_FORM_NAME, second_call[1]["data"])
 
     @patch('requests.Session')
     def test_login_failure(self, mock_session):
