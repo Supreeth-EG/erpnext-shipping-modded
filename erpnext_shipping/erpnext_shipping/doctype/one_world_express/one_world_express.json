@@ -11,8 +11,7 @@
   "username",
   "password",
   "company_slug",
-  "tracking_url",
-  "test_connection"
+  "tracking_url"
  ],
  "fields": [
   {
@@ -48,13 +47,6 @@
    "label": "Tracking URL",
    "reqd": 1,
    "description": "Base URL for tracking shipments (e.g., https://www.oneworldship.co.uk/track)"
-  },
-  {
-   "fieldname": "test_connection",
-   "fieldtype": "Button",
-   "label": "Test Connection",
-   "description": "Test the connection to One World Express",
-   "click": "erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.test_connection"
   }
  ],
  "index_web_pages_for_search": 1,

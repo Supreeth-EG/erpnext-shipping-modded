@@ -1,6 +1,30 @@
 frappe.ui.form.on('One World Express', {
     refresh: function(frm) {
-        // Add custom buttons or actions here if needed
+        // Add test connection button
+        frm.add_custom_button(__('Test Connection'), function() {
+            frappe.call({
+                method: 'erpnext_shipping.erpnext_shipping.doctype.one_world_express.one_world_express.test_connection',
+                callback: function(r) {
+                    if (r.message) {
+                        frappe.show_alert({
+                            message: __('Connection successful!'),
+                            indicator: 'green'
+                        });
+                    } else {
+                        frappe.show_alert({
+                            message: __('Connection failed. Please check your credentials.'),
+                            indicator: 'red'
+                        });
+                    }
+                },
+                error: function(r) {
+                    frappe.show_alert({
+                        message: __('Error testing connection: ') + r.message,
+                        indicator: 'red'
+                    });
+                }
+            });
+        });
     },
     
     validate: function(frm) {
