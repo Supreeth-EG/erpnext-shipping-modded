@@ -34,6 +34,9 @@ def get_one_world_utils():
 def test_connection():
     """Test One World Express connection"""
     try:
+        # Show notification that test is starting
+        frappe.msgprint(_("Testing connection to One World Express..."), alert=True)
+        
         utils = get_one_world_utils()
         if utils._login():
             # Optionally, try a simple read operation if login alone is not sufficient proof
@@ -42,19 +45,19 @@ def test_connection():
             test_url = f"{utils.base_url}/company/{utils.company_slug}/shipped" # An example protected page
             response = utils._make_request("GET", test_url)
             if response.status_code == 200 and "logout" in response.text.lower(): # Check for a common logged-in indicator
-                 frappe.msgprint(_("Successfully connected and authenticated with One World Express."))
+                 frappe.msgprint(_("Successfully connected and authenticated with One World Express."), alert=True, indicator="green")
                  return True
             else:
                 frappe.log_error(f"OneWorld Test Connection: Login succeeded but could not confirm access to protected page {test_url}. Status: {response.status_code}", "OneWorld Connection Test Error")
-                frappe.throw(_("Connection test partially failed: Login successful, but could not verify access to resources. Check logs."))
+                frappe.msgprint(_("Connection test partially failed: Login successful, but could not verify access to resources. Check logs."), alert=True, indicator="orange")
                 return False # Login might have appeared successful but wasn't really
 
         else:
-            frappe.throw(_("Failed to connect to One World Express. Please check your credentials, company slug, and logs."))
+            frappe.msgprint(_("Failed to connect to One World Express. Please check your credentials, company slug, and logs."), alert=True, indicator="red")
             return False
     except Exception as e:
         frappe.log_error(title="One World Express Test Connection Error", message=frappe.get_traceback())
-        frappe.throw(_(f"Error testing connection: {str(e)}"))
+        frappe.msgprint(_(f"Error testing connection: {str(e)}"), alert=True, indicator="red")
         return False
 
 class OneWorldExpressError(Exception):
