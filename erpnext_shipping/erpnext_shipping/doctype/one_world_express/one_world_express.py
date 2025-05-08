@@ -239,27 +239,36 @@ class OneWorldExpressUtils:
     def _login(self) -> bool:
         """Login to One World Express"""
         try:
-            # First try direct login
-            login_url = f"{BASE_URL}/signin"
-            response = self.session.post(login_url, data={
+            # Get CSRF token
+            response = self._make_request("GET", self.login_url)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            csrf_token = soup.find('input', {'name': CSRF_TOKEN_FORM_NAME})
+            csrf_token = csrf_token['value'] if csrf_token else None
+
+            if not csrf_token:
+                frappe.log_warning("CSRF token not found", "OneWorld Login Warning")
+                return False
+
+            # Login with CSRF token
+            login_data = {
+                "csrfmiddlewaretoken": csrf_token,
                 "username": self.username,
-                "password": self.password
-            })
+                "password": self.password,
+                "next": ""
+            }
 
-            # If login fails or reCAPTCHA is present, use Selenium
-            if "reCAPTCHA" in response.text or response.status_code != 200:
-                cookies = self.recaptcha_solver.solve()
-                if cookies:
-                    # Update session with all cookies from Selenium
-                    for name, value in cookies.items():
-                        self.session.cookies.set(name, value)
-                else:
-                    frappe.throw(_("Failed to solve reCAPTCHA"))
+            response = self._make_request(
+                "POST",
+                self.login_url,
+                data=login_data,
+                headers={"Referer": self.login_url}
+            )
 
-            # Verify login by accessing a protected page
-            test_url = f"{self.api_base_url}/shipped"
-            response = self._make_request("GET", test_url)
-            return response.status_code == 200 and "logout" in response.text.lower()
+            # Check if login was successful
+            if response.status_code == 200 and 'sessionid' in self.session.cookies:
+                return True
+
+            return False
 
         except Exception as e:
             frappe.log_error(title="One World Express Login Error", message=frappe.get_traceback())

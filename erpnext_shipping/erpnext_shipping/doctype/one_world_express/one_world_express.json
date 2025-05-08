@@ -9,9 +9,7 @@
   "username",
   "password",
   "company_slug",
-  "tracking_url",
-  "recaptcha_solving_service",
-  "chrome_driver_path"
+  "tracking_url"
  ],
  "fields": [
   {
@@ -44,19 +42,6 @@
    "fieldtype": "Data",
    "label": "Tracking URL",
    "description": "Base URL for tracking shipments (e.g., https://www.oneworldship.co.uk/track)"
-  },
-  {
-   "fieldname": "recaptcha_solving_service",
-   "fieldtype": "Data",
-   "label": "reCAPTCHA Solving Service",
-   "description": "Method path to the reCAPTCHA solving service",
-   "default": "erpnext_shipping.services.recaptcha.solve_recaptcha"
-  },
-  {
-   "fieldname": "chrome_driver_path",
-   "fieldtype": "Data",
-   "label": "Chrome Driver Path",
-   "description": "Path to Chrome WebDriver executable (leave empty to use system PATH)"
   }
  ],
  "index_web_pages_for_search": 1,
