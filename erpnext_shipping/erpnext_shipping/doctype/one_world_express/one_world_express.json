@@ -1,10 +1,8 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:One World Express",
- "creation": "2024-03-19 10:00:00.000000",
+ "creation": "2024-01-01 00:00:00.000000",
  "doctype": "DocType",
- "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "enabled",
@@ -15,6 +13,7 @@
  ],
  "fields": [
   {
+   "default": "0",
    "fieldname": "enabled",
    "fieldtype": "Check",
    "label": "Enabled",
@@ -24,49 +23,42 @@
    "fieldname": "username",
    "fieldtype": "Data",
    "label": "Username",
-   "reqd": 1,
    "description": "Your One World Express username"
   },
   {
    "fieldname": "password",
    "fieldtype": "Password",
    "label": "Password",
-   "reqd": 1,
    "description": "Your One World Express password"
   },
   {
    "fieldname": "company_slug",
    "fieldtype": "Data",
    "label": "Company Slug",
-   "reqd": 1,
    "description": "Your company's unique identifier in One World Express"
   },
   {
    "fieldname": "tracking_url",
    "fieldtype": "Data",
    "label": "Tracking URL",
-   "reqd": 1,
    "description": "Base URL for tracking shipments (e.g., https://www.oneworldship.co.uk/track)"
   }
  ],
  "index_web_pages_for_search": 1,
- "istable": 0,
+ "issingle": 1,
  "links": [],
- "modified": "2024-03-19 10:00:00.000000",
+ "modified": "2024-01-01 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "ERPNext Shipping",
  "name": "One World Express",
- "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
    "create": 1,
    "delete": 1,
    "email": 1,
-   "export": 1,
    "print": 1,
    "read": 1,
-   "report": 1,
    "role": "System Manager",
    "share": 1,
    "write": 1
