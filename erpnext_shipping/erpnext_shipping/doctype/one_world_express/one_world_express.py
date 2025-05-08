@@ -240,7 +240,7 @@ class OneWorldExpressUtils:
         """Login to One World Express"""
         try:
             # First try direct login
-            login_url = f"{BASE_URL}/login"
+            login_url = f"{BASE_URL}/signin"
             response = self.session.post(login_url, data={
                 "username": self.username,
                 "password": self.password
@@ -248,13 +248,19 @@ class OneWorldExpressUtils:
 
             # If login fails or reCAPTCHA is present, use Selenium
             if "reCAPTCHA" in response.text or response.status_code != 200:
-                session_cookie = self.recaptcha_solver.solve()
-                if session_cookie:
-                    self.session.cookies.update(session_cookie)
+                cookies = self.recaptcha_solver.solve()
+                if cookies:
+                    # Update session with all cookies from Selenium
+                    for name, value in cookies.items():
+                        self.session.cookies.set(name, value)
                 else:
                     frappe.throw(_("Failed to solve reCAPTCHA"))
 
-            return True
+            # Verify login by accessing a protected page
+            test_url = f"{self.api_base_url}/shipped"
+            response = self._make_request("GET", test_url)
+            return response.status_code == 200 and "logout" in response.text.lower()
+
         except Exception as e:
             frappe.log_error(title="One World Express Login Error", message=frappe.get_traceback())
             frappe.throw(_("Failed to login: {0}").format(str(e)))
